@@ -1,55 +1,97 @@
 <template>
-	<section class="card">
-		<h2>5. 问题列表 · 回答并分析</h2>
-    <el-empty v-if="questions.length === 0" description="请先生成问题" />
-    <el-collapse v-else v-model="active" accordion>
-            <el-collapse-item class="q-item" v-for="(q, idx) in questions" :key="q.id" :name="q.id">
-                    <template #title>
-                            <div class="title">
-                                    <span class="index">{{ idx + 1 }}.</span>
-                                    <span class="title-text">{{ truncate(q.text, 40) }}</span>
-                                    <div class="status">
-                                            <el-tag size="small" type="success" effect="light" round v-if="hasAnswer(q)">已回答</el-tag>
-                                            <el-tag size="small" type="info" effect="light" round v-else>未回答</el-tag>
-                                    </div>
-                            </div>
-                    </template>
+  <div class="space-y-8">
+    <div v-if="questions.length === 0"
+         class="text-center py-12 backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30">
+      <div
+          class="w-16 h-16 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+        <i class="fas fa-question-circle text-gray-400 text-2xl"></i>
+      </div>
+      <p class="text-gray-500">请先生成问题</p>
+    </div>
 
-                    <div class="full-question">
-                            <span class="label">问题</span>
-                            <div class="fq-text">{{ q.text }}</div>
-                    </div>
+    <div
+        v-for="(q, index) in questions"
+        :key="q.id"
+        class="backdrop-blur-sm bg-white/60 border border-gray-200/60 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-200"
+    >
+      <h3 class="font-semibold text-gray-800 mb-4 flex items-start">
+				<span
+            class="inline-block w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+					{{ index + 1 }}
+				</span>
+        {{ q.text }}
+      </h3>
 
-                    <div class="inner">
-                            <el-input
-                                    type="textarea"
-                                    :autosize="{ minRows: 5, maxRows: 12 }"
-                                    v-model="answers[q.id]"
-                                    placeholder="请输入你的回答"
-                            />
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">您的回答：</label>
+        <textarea
+            class="w-full h-32 border border-gray-300/60 rounded-2xl p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none backdrop-blur-sm bg-white/80 shadow-sm hover:shadow-md transition-all duration-200"
+            placeholder="请在此输入您的回答..."
+            v-model="answers[q.id]"
+        ></textarea>
+      </div>
 
-                            <div class="actions">
-                                    <el-button type="primary" @click="analyze(q)" :loading="isAnalyzing(q.id)" :disabled="isAnalyzing(q.id)">分析答案</el-button>
-                            </div>
-                    </div>
+      <div v-if="q.analysis || q.standardAnswer" class="mt-6 pt-6 border-t border-gray-100">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div
+              class="backdrop-blur-sm bg-gradient-to-br from-purple-50/80 to-indigo-50/80 border border-purple-100/60 rounded-2xl p-6 shadow-lg">
+            <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+              <i class="fas fa-robot text-purple-600 mr-2"></i>AI 回答分析
+            </h4>
+            <div class="space-y-4">
+              <div class="flex items-start">
+                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                <div>
+                  <h5 class="font-medium text-gray-800 mb-1">回答评价</h5>
+                  <div class="text-gray-700 text-sm" v-html="renderMd(q.analysis)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                    <div v-if="q.analysis || q.standardAnswer" class="analysis">
-                            <template v-if="q.analysis">
-                                    <div class="section-title">分析</div>
-                                    <div class="md" v-html="renderMd(q.analysis)"></div>
-                            </template>
-                            <template v-if="q.standardAnswer">
-                                    <div class="section-title">参考答案</div>
-                                    <div class="md" v-html="renderMd(q.standardAnswer)"></div>
-                            </template>
-                    </div>
-            </el-collapse-item>
-    </el-collapse>
-	</section>
+          <div
+              class="backdrop-blur-sm bg-gradient-to-br from-blue-50/80 to-cyan-50/80 border border-blue-100/60 rounded-2xl p-6 shadow-lg">
+            <h4 class="font-semibold text-gray-800 mb-4 flex items-center">
+              <i class="fas fa-book-open text-blue-600 mr-2"></i>标准参考答案
+            </h4>
+            <div class="backdrop-blur-sm bg-white/80 border border-blue-200/60 rounded-xl p-4 shadow-sm">
+              <div class="text-gray-700 text-sm leading-relaxed" v-html="renderMd(q.standardAnswer)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button
+            v-if="!q.analysis && !q.standardAnswer"
+            class="!rounded-button whitespace-nowrap px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm"
+            @click="analyze(q)"
+            :disabled="isAnalyzing(q.id)"
+            :class="{ 'opacity-50 cursor-not-allowed': isAnalyzing(q.id) }"
+        >
+          <i class="fas fa-search mr-2"></i>
+          <span v-if="isAnalyzing(q.id)">分析中...</span>
+          <span v-else>分析回答</span>
+        </button>
+        <button
+            v-else
+            class="!rounded-button whitespace-nowrap px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl backdrop-blur-sm"
+            @click="analyze(q)"
+            :disabled="isAnalyzing(q.id)"
+            :class="{ 'opacity-50 cursor-not-allowed': isAnalyzing(q.id) }"
+        >
+          <i class="fas fa-sync-alt mr-2"></i>
+          <span v-if="isAnalyzing(q.id)">重新分析中...</span>
+          <span v-else>重新分析</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue';
+import {reactive, ref, watch} from 'vue';
+import {marked} from 'marked';
 
 type Question = { id: string; text: string; answer?: string; analysis?: string; standardAnswer?: string };
 const props = defineProps<{ questions: Question[]; analyzingIds?: string[] }>();
@@ -59,77 +101,57 @@ const answers = reactive<Record<string, string>>({});
 const active = ref<string | undefined>(undefined);
 
 watch(
-	() => props.questions,
-	(list) => {
-		for (const q of list) {
-			answers[q.id] = q.answer || '';
-		}
-	},
-	{ immediate: true }
+    () => props.questions,
+    (list) => {
+      for (const q of list) {
+        answers[q.id] = q.answer || '';
+      }
+    },
+    {immediate: true}
 );
 
 function analyze(q: Question) {
-    emit('analyze', { id: q.id, answer: answers[q.id] || '' });
+  emit('analyze', {id: q.id, answer: answers[q.id] || ''});
 }
 
 function isAnalyzing(id: string): boolean {
-    return (props.analyzingIds || []).includes(id);
+  return (props.analyzingIds || []).includes(id);
 }
 
-import { marked } from 'marked';
 function renderMd(src?: string) {
-    return marked.parse(src || '');
+  return marked.parse(src || '');
 }
 
 function hasAnswer(q: Question): boolean {
-    const val = answers[q.id] ?? q.answer ?? '';
-    return !!String(val).trim();
+  const val = answers[q.id] ?? q.answer ?? '';
+  return !!String(val).trim();
 }
 
 function truncate(text: string, max = 40): string {
-    if (!text) return '';
-    return text.length > max ? text.slice(0, max) + '…' : text;
+  if (!text) return '';
+  return text.length > max ? text.slice(0, max) + '…' : text;
 }
 </script>
 
 <style scoped>
-.card {
-	border: 1px solid #eee;
-	border-radius: 8px;
-	padding: 16px;
-	background: #fff;
+.rounded-button {
+  border-radius: 0.5rem;
 }
-.title { display: flex; align-items: center; width: 100%; gap: 8px; }
-.title .index { color: #909399; width: 24px; text-align: right; }
-.title .title-text { flex: 1; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.title .status { margin-left: auto; display: flex; align-items: center; }
-.ml8 { margin-left: 8px; }
-.analysis { margin-top: 8px; background: #f7fafc; border: 1px solid #e6edf5; border-radius: 6px; padding: 8px; }
-.pre { margin: 4px 0 0; white-space: pre-wrap; }
-.placeholder { color: #999; }
-.md :deep(code) { background: #f6f8fa; padding: 2px 6px; border-radius: 4px; }
-.md :deep(pre) { background: #0b1021; color: #e6edf5; padding: 12px; border-radius: 6px; overflow: auto; }
 
-.inner {
-	background: #fafbfd;
-	border: 1px solid #e9edf5;
-	border-radius: 8px;
-	padding: 12px 12px 10px;
-	margin-top: 8px;
+/* Markdown 样式 */
+:deep(.md) code {
+  background: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
-.actions {
-	display: flex;
-	justify-content: flex-end;
-	margin-top: 12px;
+
+:deep(.md) pre {
+  background: #0b1021;
+  color: #e6edf5;
+  padding: 12px;
+  border-radius: 6px;
+  overflow: auto;
 }
-.inner :deep(.el-textarea__inner) {
-	border-radius: 8px;
-	line-height: 1.7;
-}
-.full-question { margin-top: 10px; background: #f7fafc; border: 1px solid #e6edf5; border-radius: 8px; padding: 10px 12px; }
-.full-question .label { display: inline-block; font-size: 12px; color: #909399; padding-right: 8px; }
-.full-question .fq-text { display: inline; font-weight: 600; white-space: pre-wrap; word-break: break-word; }
-.q-item { margin-bottom: 10px; }
 </style>
 
 

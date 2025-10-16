@@ -1,11 +1,12 @@
-import { createApp } from 'vue';
+import {createApp} from 'vue';
 import App from './App.vue';
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
+import './tailwind.css';
 import './styles.css';
 
 createApp(App)
-	.use(ElementPlus)
-	.mount('#app');
+    .use(ElementPlus)
+    .mount('#app');
 
 

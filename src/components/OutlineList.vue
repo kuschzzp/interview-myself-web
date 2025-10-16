@@ -1,62 +1,105 @@
 <template>
-	<section class="card">
-    <div class="header">
-            <h2>3. 面试大纲</h2>
-            <el-button type="primary" @click="$emit('gen-outline')" :loading="loading" :disabled="loading">生成大纲</el-button>
+  <div>
+
+    <div v-if="!outline.length"
+         class="text-center py-12 backdrop-blur-sm bg-white/40 rounded-2xl border border-white/30">
+      <div
+          class="w-16 h-16 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+        <i class="fas fa-list text-gray-400 text-2xl"></i>
+      </div>
+      <p class="text-gray-500 mb-4">暂无面试大纲</p>
+      <button
+          class="!rounded-button whitespace-nowrap px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 flex items-center mx-auto shadow-lg hover:shadow-xl backdrop-blur-sm"
+          @click="$emit('gen-outline')"
+          :disabled="loading"
+          :class="{ 'opacity-50 cursor-not-allowed': loading }"
+      >
+        <i class="fas fa-magic mr-2"></i>
+        <span v-if="loading">生成中...</span>
+        <span v-else>生成面试大纲</span>
+      </button>
     </div>
-    <el-empty v-if="!outline.length" description="点击“生成大纲”开始" />
-    <el-table
-            v-else
-            :data="outline.map((o, i) => ({ index: i + 1, topic: o }))"
-            border
-            stripe
-            size="small"
-            style="width: 100%; margin-top: 12px; border-radius: 8px; overflow: hidden;"
-    >
-            <el-table-column type="index" label="#" width="60" align="center" />
-            <el-table-column label="大纲条目">
-                    <template #default="scope">
-                            <span class="topic-text">{{ scope.row.topic }}</span>
-                    </template>
-            </el-table-column>
-            <el-table-column label="操作" width="160" align="center">
-                    <template #default="scope">
-                            <el-button size="small" type="primary" plain round @click="$emit('select-outline', scope.row.topic)">选择该条目</el-button>
-                    </template>
-            </el-table-column>
-    </el-table>
-	</section>
+
+    <div v-else class="space-y-4">
+      <!-- 重新生成按钮 -->
+      <div class="flex justify-end mb-4">
+        <button
+            class="!rounded-button whitespace-nowrap px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl backdrop-blur-sm"
+            @click="$emit('gen-outline')"
+            :disabled="loading"
+            :class="{ 'opacity-50 cursor-not-allowed': loading }"
+        >
+          <i class="fas fa-sync-alt mr-2"></i>
+          <span v-if="loading">重新生成中...</span>
+          <span v-else>重新生成大纲</span>
+        </button>
+      </div>
+
+      <div
+          v-for="(item, index) in outline"
+          :key="index"
+          class="outline-item backdrop-blur-sm bg-white/60 border border-gray-200/60 rounded-2xl p-5 hover:shadow-xl transition-all duration-200 cursor-pointer"
+          :class="{ 'border-blue-500/80 bg-blue-50/60 shadow-lg': selectedOutline === index }"
+          @click="selectOutline(index)"
+      >
+        <div class="flex items-start">
+          <input
+              type="radio"
+              class="mt-1 mr-4 h-5 w-5 text-blue-600 focus:ring-blue-500"
+              :name="'outline-selection'"
+              :checked="selectedOutline === index"
+              @click.stop
+          >
+          <div class="flex-1">
+            <h3 class="font-semibold text-gray-800 mb-2">{{ item }}</h3>
+            <p class="text-gray-600 text-sm">{{ item }}</p>
+          </div>
+          <div class="ml-4">
+            <button
+                class="!rounded-button whitespace-nowrap px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 text-sm shadow-lg hover:shadow-xl backdrop-blur-sm"
+                @click.stop="$emit('select-outline', item)"
+            >
+              <i class="fas fa-check mr-1"></i>选择
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{ outline: string[]; loading?: boolean }>();
-defineEmits<{
-	(e: 'select-outline', item: string): void;
-	(e: 'gen-outline'): void;
+import {ref, watch} from 'vue';
+
+const props = defineProps<{ outline: string[]; loading?: boolean; selectedOutline?: string }>();
+const emit = defineEmits<{
+  (e: 'select-outline', item: string): void;
+  (e: 'gen-outline'): void;
 }>();
+
+const selectedOutline = ref<number | null>(null);
+
+// 监听selectedOutline prop的变化，更新本地选中状态
+watch(() => props.selectedOutline, (newSelected) => {
+  if (newSelected && props.outline.length > 0) {
+    const index = props.outline.findIndex(item => item === newSelected);
+    selectedOutline.value = index >= 0 ? index : null;
+  } else {
+    selectedOutline.value = null;
+  }
+}, {immediate: true});
+
+const selectOutline = (index: number) => {
+  selectedOutline.value = index;
+  // 立即触发选择事件并跳转
+  emit('select-outline', props.outline[index]);
+};
 </script>
 
 <style scoped>
-.card {
-	border: 1px solid #eee;
-	border-radius: 8px;
-	padding: 16px;
-	background: #fff;
+.rounded-button {
+  border-radius: 0.5rem;
 }
-.header { display: flex; align-items: center; justify-content: space-between; }
-.list { list-style: none; padding: 0; margin: 12px 0 0; }
-.li { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
-.btn {
-	padding: 8px 14px;
-	background: #2f66f6;
-	color: #fff;
-	border: none;
-	border-radius: 6px;
-	cursor: pointer;
-}
-.btn.small { padding: 6px 10px; font-size: 12px; }
-.placeholder { color: #999; margin-top: 8px; }
-.topic-text { white-space: pre-wrap; word-break: break-word; }
 </style>
 
 
