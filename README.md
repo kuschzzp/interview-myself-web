@@ -1,7 +1,7 @@
 
 
 ### 说明见后端项目地址：
-> web页面 前端代码 地址： [在这里～～～](https://github.com/kuschzzp/interview-myself)
+> 后端代码 地址： [在这里～～～](https://github.com/kuschzzp/interview-myself)
 
 ####  本地启动
 
